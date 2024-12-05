@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>To-Do App</title>
+  <style>
+    /* General Styles */
+    body {
+      background-color: #f0f0f0;
+      font-family: Arial, sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+      padding: 0;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 500px;
+      background-color: #ffffff;
+      border-radius: 10px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+      padding: 20px;
+    }
+
+    h1 {
+      font-size: 24px;
+      text-align: center;
+      margin-bottom: 20px;
+      color: #333;
+    }
+
+    form {
+      margin-bottom: 20px;
+    }
+
+    input,
+    textarea {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 10px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      font-size: 14px;
+    }
+
+    button {
+      width: 100%;
+      padding: 10px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      font-size: 16px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+
+    button:hover {
+      background-color: #0056b3;
+    }
+
+    .task-list {
+      list-style: none;
+      padding: 0;
+    }
+
+    .task-list-item {
+      background-color: #f9f9f9;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 15px;
+      margin-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      transition: box-shadow 0.3s ease;
+    }
+
+    .task-list-item:hover {
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .task-buttons {
+      display: flex;
+      gap: 10px;
+    }
+
+    .edit-btn {
+      background-color: #ffc107;
+      color: white;
+      border: none;
+      padding: 8px 12px;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+
+    .edit-btn:hover {
+      background-color: #e0a800;
+    }
+
+    .delete-btn {
+      background-color: #dc3545;
+      color: white;
+      border: none;
+      padding: 8px 12px;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+
+    .delete-btn:hover {
+      background-color: #c82333;
+    }
+  </style>
+</head>
+
+<body>
+  <!-- Main container -->
+  <div class="container">
+    <h1>To-Do List</h1>
+
+    <!-- Form to add/edit a task -->
+    <form id="task-form">
+      <input type="text" id="task-title" placeholder="Task Title" required>
+      <textarea id="task-description" placeholder="Task Description"></textarea>
+      <button type="submit" id="submit-btn">Add Task</button>
+    </form>
+
+    <!-- List of tasks -->
+    <ul id="task-list" class="task-list">
+      <!-- Task items will be dynamically populated here -->
+    </ul>
+  </div>
+
+  <!-- JavaScript -->
+  <script>
+    const API_URL = 'https://todo-app-backend-for-electron-js-desktop-app.vercel.app/tasks';
+    let editTaskId = null; // Track task being edited
+
+    // Fetch tasks from API
+    async function fetchTasks() {
+      const response = await fetch(API_URL);
+      const tasks = await response.json();
+      const taskList = document.getElementById('task-list');
+      taskList.innerHTML = '';
+      tasks.forEach(task => {
+        taskList.innerHTML += `
+          <li class="task-list-item">
+            <div>
+              <span class="task-title"><strong>${task.title}</strong></span>
+              <p>${task.description}</p>
+            </div>
+            <div class="task-buttons">
+              <button class="edit-btn" onclick="startEditTask('${task._id}', '${task.title}', '${task.description}')">Edit</button>
+              <button class="delete-btn" onclick="deleteTask('${task._id}')">Delete</button>
+            </div>
+          </li>
+        `;
+      });
+    }
+
+    // Add or Edit Task
+    document.getElementById('task-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const title = document.getElementById('task-title').value;
+      const description = document.getElementById('task-description').value;
+
+      if (editTaskId) {
+        // Update task
+        await fetch(`${API_URL}/${editTaskId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title, description })
+        });
+        editTaskId = null;
+        document.getElementById('submit-btn').innerText = 'Add Task';
+      } else {
+        // Add new task
+        await fetch(API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title, description })
+        });
+      }
+      document.getElementById('task-form').reset();
+      fetchTasks();
+    });
+
+    // Delete Task
+    async function deleteTask(id) {
+      await fetch(`${API_URL}/${id}`, { method: 'DELETE' });
+      fetchTasks();
+    }
+
+    // Start editing a task
+    function startEditTask(id, title, description) {
+      editTaskId = id;
+      document.getElementById('task-title').value = title;
+      document.getElementById('task-description').value = description;
+      document.getElementById('submit-btn').innerText = 'Update Task';
+    }
+
+    // Fetch tasks on page load
+    fetchTasks();
+  </script>
+</body>
+
+</html>
